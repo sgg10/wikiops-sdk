@@ -1,0 +1,43 @@
+"""Public SDK exports for contracts, domain models, and compatibility helpers."""
+
+from wikiops_sdk.compat import (
+    DEFAULT_COMPATIBILITY_POLICY,
+    MIN_SUPPORTED_PYTHON,
+    PLUGIN_API_VERSION,
+    PLUGIN_ENTRYPOINT_GROUP,
+    PROVIDER_API_VERSION,
+    PROVIDER_ENTRYPOINT_GROUP,
+    SDK_VERSION,
+    STRICT_COMPAT_MODE_ENV,
+    ensure_plugin_api_compatible,
+    ensure_provider_api_compatible,
+    ensure_python_compatible,
+    get_sdk_version,
+    is_plugin_api_compatible,
+    is_provider_api_compatible,
+    is_python_compatible,
+    is_strict_compat_mode_enabled,
+    resolve_plugin_api_version,
+    resolve_provider_api_version,
+)
+
+__all__ = [
+    "DEFAULT_COMPATIBILITY_POLICY",
+    "MIN_SUPPORTED_PYTHON",
+    "PLUGIN_API_VERSION",
+    "PLUGIN_ENTRYPOINT_GROUP",
+    "PROVIDER_API_VERSION",
+    "PROVIDER_ENTRYPOINT_GROUP",
+    "SDK_VERSION",
+    "STRICT_COMPAT_MODE_ENV",
+    "ensure_plugin_api_compatible",
+    "ensure_provider_api_compatible",
+    "ensure_python_compatible",
+    "get_sdk_version",
+    "is_plugin_api_compatible",
+    "is_provider_api_compatible",
+    "is_python_compatible",
+    "is_strict_compat_mode_enabled",
+    "resolve_plugin_api_version",
+    "resolve_provider_api_version",
+]

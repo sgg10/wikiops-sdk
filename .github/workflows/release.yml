@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build release artifacts
+    runs-on: ubuntu-latest
+    outputs:
+      package-version: ${{ steps.package-metadata.outputs.package-version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build and test tools
+        run: python -m pip install --upgrade pip poetry twine
+
+      - name: Capture package metadata
+        id: package-metadata
+        run: echo "package-version=$(poetry version -s)" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release tag matches project version
+        if: github.event_name == 'push'
+        run: python scripts/check_release_version.py --tag "${GITHUB_REF_NAME}"
+
+      - name: Install project dependencies
+        run: poetry install --with tests --no-interaction
+
+      - name: Run test suite
+        run: poetry run pytest
+
+      - name: Validate project metadata
+        run: poetry check
+
+      - name: Build distributions
+        run: rm -rf dist && poetry build
+
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Smoke test built wheel
+        run: |
+          python -m venv .venv-smoke
+          . .venv-smoke/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          python scripts/smoke_test_sdk.py --expected-distribution-version "${{ steps.package-metadata.outputs.package-version }}"
+
+      - name: Store distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build-release
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/wikiops-sdk
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  smoke-test-testpypi:
+    name: Smoke test TestPyPI install (Python ${{ matrix.python-version }})
+    needs: [build-release, publish-testpypi]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Wait for TestPyPI package availability
+        run: |
+          python scripts/wait_for_package.py \
+            --repository testpypi \
+            --package wikiops-sdk \
+            --version "${{ needs.build-release.outputs.package-version }}" \
+            --timeout 300 \
+            --interval 10
+
+      - name: Install package from TestPyPI and run smoke test
+        run: |
+          python -m venv .venv-testpypi
+          . .venv-testpypi/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            "wikiops-sdk==${{ needs.build-release.outputs.package-version }}"
+          python scripts/smoke_test_sdk.py --expected-distribution-version "${{ needs.build-release.outputs.package-version }}"
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'push'
+    needs: [build-release, smoke-test-testpypi]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/wikiops-sdk
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
