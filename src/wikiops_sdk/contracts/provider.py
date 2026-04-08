@@ -2,6 +2,7 @@ from typing import Optional, Protocol, Set, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+from wikiops_sdk.compat import PROVIDER_API_VERSION
 from wikiops_sdk.domain.context import ExecutionContext
 from wikiops_sdk.domain.models import (
     ChangeSet,
@@ -16,6 +17,10 @@ class ProviderSettings(BaseModel):
     """Base model for provider-specific configuration settings."""
 
     provider_name: str = Field(..., description="Logical name of the target provider.")
+    provider_api_version: str = Field(
+        default=PROVIDER_API_VERSION,
+        description="Version of the provider API that this provider implements.",
+    )
 
 
 @runtime_checkable
