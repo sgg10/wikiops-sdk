@@ -5,17 +5,43 @@ description = "Public SDK for WikiOps plugins and integrations. Provides the sha
 authors = [
     {name = "Sebastian Granda Gallego",email = "sgg10.develop@gmail.com"}
 ]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10"
+keywords = ["wikiops", "wiki", "documentation", "markdown", "sdk", "plugins", "automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 dependencies = [
     "pydantic (>=2.12.5,<3.0.0)"
 ]
 
+[project.urls]
+Homepage = "https://github.com/sgg10/wikiops-sdk"
+Repository = "https://github.com/sgg10/wikiops-sdk"
+Documentation = "https://github.com/sgg10/wikiops-sdk/tree/main/docs"
+Issues = "https://github.com/sgg10/wikiops-sdk/issues"
+
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=2.2.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+    { include = "wikiops_sdk", from = "src" }
+]
+exclude = ["src/wikiops_sdk/resources/.gitkeep"]
 
 [dependency-groups]
 tests = [
