@@ -1,6 +1,6 @@
 from enum import Enum
 from uuid import uuid4
-from typing import Any, Literal, Union, Annotated, Optional, Dict, List
+from typing import Any, Annotated, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,6 +19,21 @@ class RefKind(str, Enum):
     ALIAS = "alias"
 
 
+class AssetRefKind(str, Enum):
+    """Logical strategies used to identify assets across providers."""
+
+    ID = "id"
+    PATH = "path"
+    URL = "url"
+
+
+class AssetPathBase(str, Enum):
+    """Logical base directories used when resolving local asset file paths."""
+
+    CONFIG_DIR = "config_dir"
+    INPUT_DIR = "input_dir"
+
+
 class ProviderCapability(str, Enum):
     """Feature flags that describe the operations a provider supports."""
 
@@ -32,6 +47,7 @@ class ProviderCapability(str, Enum):
     RESOLVE_BY_ID = "resolve_by_id"
     HIERARCHICAL_PAGES = "hierarchical_pages"
     VERSION_CHECK = "version_check"
+    PUT_ASSET = "put_asset"
 
 
 class DocumentVersion(BaseModel):
@@ -85,6 +101,104 @@ class Document(BaseModel):
     )
     metadata: Dict[str, Any] = Field(
         default_factory=dict, description="Optional provider-specific metadata."
+    )
+
+
+class AssetRef(BaseModel):
+    """Provider-scoped locator that resolves a concrete asset instance."""
+
+    model_config = ConfigDict(extra="allow")
+
+    provider: str = Field(..., description="Logical provider identifier.")
+    kind: AssetRefKind = Field(..., description="Kind of asset reference.")
+    locator: Dict[str, str] = Field(
+        default_factory=dict, description="Locator information for the asset reference."
+    )
+
+
+class Asset(BaseModel):
+    """Portable asset payload with normalized metadata fields."""
+
+    ref: AssetRef = Field(..., description="Logical reference to the asset.")
+    name: str = Field(..., description="Asset file name.")
+    media_type: str = Field(..., description="Asset media type.")
+    size_bytes: Optional[int] = Field(
+        None, description="Optional asset size in bytes."
+    )
+    version: Optional[DocumentVersion] = Field(
+        None, description="Optional version information for the asset."
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Optional provider-specific metadata."
+    )
+
+
+class PluginResourceAssetSource(BaseModel):
+    """Source that loads asset bytes from a plugin-packaged resource."""
+
+    kind: Literal["plugin_resource"] = Field(
+        "plugin_resource", description="Type discriminator for the asset source."
+    )
+    relative_path: str = Field(
+        ..., description="Plugin resource path relative to the package root."
+    )
+
+
+class LocalFileAssetSource(BaseModel):
+    """Source that loads asset bytes from the local filesystem."""
+
+    kind: Literal["local_file"] = Field(
+        "local_file", description="Type discriminator for the asset source."
+    )
+    path: str = Field(..., description="Path to the local file on disk.")
+    relative_to: Optional[AssetPathBase] = Field(
+        None,
+        description=(
+            "Logical base directory used when resolving relative local file paths."
+        ),
+    )
+
+
+AssetSource = Annotated[
+    Union[PluginResourceAssetSource, LocalFileAssetSource],
+    Field(discriminator="kind"),
+]
+
+
+class AssetDefinition(BaseModel):
+    """Reusable asset declaration for plugin config or execution input models."""
+
+    source: AssetSource = Field(..., description="How the asset bytes are obtained.")
+    name: Optional[str] = Field(
+        None,
+        description="Optional file name override used when persisting the asset.",
+    )
+    media_type: Optional[str] = Field(
+        None,
+        description="Optional media type override used when persisting the asset.",
+    )
+    overridable: bool = Field(
+        True,
+        description="Whether an input declaration is allowed to override this asset.",
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Optional provider-specific metadata."
+    )
+
+
+class AssetPolicy(BaseModel):
+    """Host-facing policy used when resolving local asset sources."""
+
+    deactivate_allowed_asset_roots: bool = Field(
+        False,
+        description=(
+            "Disable trusted-root enforcement for local assets. When enabled, hosts "
+            "should warn because unrestricted local file access is not recommended."
+        ),
+    )
+    allowed_asset_roots: List[str] = Field(
+        default_factory=list,
+        description="Trusted filesystem roots allowed for local asset resolution.",
     )
 
 
@@ -200,8 +314,45 @@ class CreateChildDocumentOperation(BaseOperation):
     )
 
 
+class PutAssetOperation(BaseOperation):
+    """Operation that uploads or refreshes an asset in the provider namespace."""
+
+    operation: Literal["put_asset"] = Field(
+        "put_asset", description="Type of the operation."
+    )
+    asset_key: str = Field(
+        ...,
+        min_length=1,
+        description="Logical key used to reference the asset from document content.",
+    )
+    source: AssetSource = Field(..., description="How the asset bytes are obtained.")
+    ref: Optional[AssetRef] = Field(
+        None,
+        description=(
+            "Optional existing reference for the asset. Providers may ignore this when "
+            "they always create a new stored asset version."
+        ),
+    )
+    parent_document_ref: Optional[DocumentRef] = Field(
+        None,
+        description="Optional document reference associated with the asset upload.",
+    )
+    name: Optional[str] = Field(
+        None,
+        description="Optional file name override used when persisting the asset.",
+    )
+    media_type: Optional[str] = Field(
+        None,
+        description="Optional media type override used when persisting the asset.",
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Optional provider-specific metadata."
+    )
+
+
 Operation = Annotated[
     Union[
+        PutAssetOperation,
         CreateDocumentOperation,
         UpdateDocumentOperation,
         CreateChildDocumentOperation,

@@ -3,7 +3,16 @@ from typing import Optional, Set
 from wikiops_sdk.compat import PROVIDER_API_VERSION
 from wikiops_sdk.contracts.provider import DocumentProvider, ProviderSettings
 from wikiops_sdk.domain.context import ExecutionContext
-from wikiops_sdk.domain.models import ChangeSet, Document, DocumentRef, ProviderCapability
+from wikiops_sdk.domain.models import (
+    Asset,
+    AssetRef,
+    AssetRefKind,
+    ChangeSet,
+    Document,
+    DocumentRef,
+    ProviderCapability,
+    PutAssetOperation,
+)
 from wikiops_sdk.domain.results import ApplyResult
 
 
@@ -41,6 +50,21 @@ class _DummyProvider:
 
     def build_link(self, ref: DocumentRef) -> Optional[str]:
         return "https://example.test/doc"
+
+    def put_asset(self, operation: PutAssetOperation, content: bytes) -> Asset:
+        return Asset(
+            ref=AssetRef(
+                provider="dummy",
+                kind=AssetRefKind.PATH,
+                locator={"path": "/.assets/demo.png"},
+            ),
+            name=operation.name or "demo.png",
+            media_type=operation.media_type or "image/png",
+            size_bytes=len(content),
+        )
+
+    def build_asset_reference(self, ref: AssetRef) -> str:
+        return ref.locator["path"]
 
     def apply_changes(self, changeset: ChangeSet) -> ApplyResult:
         return ApplyResult(provider_name="dummy")

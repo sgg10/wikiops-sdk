@@ -5,9 +5,12 @@ from pydantic import BaseModel, Field
 from wikiops_sdk.compat import PROVIDER_API_VERSION
 from wikiops_sdk.domain.context import ExecutionContext
 from wikiops_sdk.domain.models import (
+    Asset,
+    AssetRef,
     ChangeSet,
     Document,
     DocumentRef,
+    PutAssetOperation,
     ProviderCapability,
 )
 from wikiops_sdk.domain.results import ApplyResult
@@ -58,6 +61,16 @@ class DocumentProvider(Protocol):
 
     def build_link(self, ref: DocumentRef) -> Optional[str]:
         """Build a user-facing URL for ``ref`` when the provider supports it."""
+
+        ...
+
+    def put_asset(self, operation: PutAssetOperation, content: bytes) -> Asset:
+        """Persist the asset bytes described by ``operation`` and return the stored asset."""
+
+        ...
+
+    def build_asset_reference(self, ref: AssetRef) -> str:
+        """Build a document-embeddable reference string for ``ref``."""
 
         ...
 

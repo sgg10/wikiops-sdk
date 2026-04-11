@@ -15,6 +15,11 @@ class PluginResourceProvider(Protocol):
 
         ...
 
+    def read_bytes(self, relative_path: str) -> bytes:
+        """Read and return binary content from ``relative_path``."""
+
+        ...
+
     def list(self, prefix: str = "") -> Iterable[str]:
         """Yield resource paths whose relative path starts with ``prefix``."""
 

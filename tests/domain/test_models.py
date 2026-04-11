@@ -2,6 +2,13 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from wikiops_sdk.domain.models import (
+    Asset,
+    AssetDefinition,
+    AssetPathBase,
+    AssetPolicy,
+    AssetRef,
+    AssetRefKind,
+    AssetSource,
     ChangeSet,
     CreateChildDocumentOperation,
     CreateDocumentOperation,
@@ -9,8 +16,11 @@ from wikiops_sdk.domain.models import (
     DocumentFormat,
     DocumentRef,
     DocumentVersion,
+    LocalFileAssetSource,
     NoteMessage,
     Operation,
+    PluginResourceAssetSource,
+    PutAssetOperation,
     ProviderCapability,
     RefKind,
     UpdateDocumentOperation,
@@ -39,6 +49,52 @@ def test_document_defaults() -> None:
     assert doc.format is DocumentFormat.MARKDOWN
     assert doc.metadata == {}
     assert doc.version is None
+
+
+def test_asset_ref_allows_extra_fields() -> None:
+    ref = AssetRef(
+        provider="demo",
+        kind=AssetRefKind.PATH,
+        locator={"path": "/.assets/logo.png"},
+        checksum="sha256:abc",
+    )
+
+    dumped = ref.model_dump()
+    assert dumped["checksum"] == "sha256:abc"
+
+
+def test_asset_defaults() -> None:
+    asset = Asset(
+        ref=AssetRef(
+            provider="demo",
+            kind=AssetRefKind.PATH,
+            locator={"path": "/.assets/logo.png"},
+        ),
+        name="logo.png",
+        media_type="image/png",
+    )
+
+    assert asset.size_bytes is None
+    assert asset.version is None
+    assert asset.metadata == {}
+
+
+def test_asset_definition_defaults() -> None:
+    definition = AssetDefinition(
+        source=PluginResourceAssetSource(relative_path="resources/logo.png")
+    )
+
+    assert definition.name is None
+    assert definition.media_type is None
+    assert definition.overridable is True
+    assert definition.metadata == {}
+
+
+def test_asset_policy_defaults() -> None:
+    policy = AssetPolicy()
+
+    assert policy.deactivate_allowed_asset_roots is False
+    assert policy.allowed_asset_roots == []
 
 
 def test_document_mutable_defaults_not_shared() -> None:
@@ -81,6 +137,18 @@ def test_create_child_document_operation_defaults() -> None:
     assert op.child_metadata == {}
 
 
+def test_put_asset_operation_defaults() -> None:
+    op = PutAssetOperation(
+        asset_key="logo",
+        source=PluginResourceAssetSource(relative_path="resources/logo.png"),
+    )
+
+    assert op.operation == "put_asset"
+    assert op.name is None
+    assert op.media_type is None
+    assert op.metadata == {}
+
+
 def test_operation_discriminator_create_document() -> None:
     adapter = TypeAdapter(Operation)
     parsed = adapter.validate_python(
@@ -91,6 +159,24 @@ def test_operation_discriminator_create_document() -> None:
         }
     )
     assert isinstance(parsed, CreateDocumentOperation)
+
+
+def test_operation_discriminator_put_asset() -> None:
+    adapter = TypeAdapter(Operation)
+    parsed = adapter.validate_python(
+        {
+            "operation": "put_asset",
+            "asset_key": "logo",
+            "source": {
+                "kind": "local_file",
+                "path": "./assets/logo.png",
+                "relative_to": "config_dir",
+            },
+        }
+    )
+
+    assert isinstance(parsed, PutAssetOperation)
+    assert parsed.source.relative_to is AssetPathBase.CONFIG_DIR
 
 
 def test_operation_discriminator_update_document() -> None:
@@ -155,3 +241,30 @@ def test_changeset_mutable_defaults_not_shared() -> None:
 def test_provider_capability_enum_values() -> None:
     assert ProviderCapability.READ_DOCUMENT.value == "read_document"
     assert ProviderCapability.VERSION_CHECK.value == "version_check"
+    assert ProviderCapability.PUT_ASSET.value == "put_asset"
+
+
+def test_asset_source_discriminator_plugin_resource() -> None:
+    adapter = TypeAdapter(AssetSource)
+    parsed = adapter.validate_python(
+        {
+            "kind": "plugin_resource",
+            "relative_path": "resources/assets/logo.png",
+        }
+    )
+
+    assert isinstance(parsed, PluginResourceAssetSource)
+
+
+def test_asset_source_discriminator_local_file() -> None:
+    adapter = TypeAdapter(AssetSource)
+    parsed = adapter.validate_python(
+        {
+            "kind": "local_file",
+            "path": "./assets/logo.png",
+            "relative_to": "input_dir",
+        }
+    )
+
+    assert isinstance(parsed, LocalFileAssetSource)
+    assert parsed.relative_to is AssetPathBase.INPUT_DIR
