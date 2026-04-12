@@ -12,6 +12,8 @@ That includes:
 - checking whether documents exist
 - reading documents
 - building user-facing links when supported
+- storing assets when supported
+- building embeddable asset references when supported
 - applying planned changes and reporting results
 
 A provider is not responsible for deciding what content should change. That decision belongs to plugins and the host workflow.
@@ -29,6 +31,8 @@ The protocol expects:
 - `exists(ref)`
 - `get_document(ref)`
 - `build_link(ref)`
+- `put_asset(operation, content)`
+- `build_asset_reference(ref)`
 - `apply_changes(changeset)`
 
 ## Minimal Provider Example
@@ -38,11 +42,15 @@ from wikiops_sdk.contracts import DocumentProvider, ProviderSettings
 from wikiops_sdk.domain import (
     ApplyResult,
     AppliedOperationResult,
+    Asset,
+    AssetRef,
+    AssetRefKind,
     ChangeSet,
     Document,
     DocumentRef,
     DocumentVersion,
     OperationStatus,
+    PutAssetOperation,
     ProviderCapability,
     RefKind,
 )
@@ -66,6 +74,7 @@ class DemoProvider:
             ProviderCapability.UPDATE_DOCUMENT,
             ProviderCapability.CREATE_CHILD_DOCUMENT,
             ProviderCapability.BUILD_LINK,
+            ProviderCapability.PUT_ASSET,
             ProviderCapability.RESOLVE_BY_ID,
             ProviderCapability.RESOLVE_BY_PATH,
             ProviderCapability.VERSION_CHECK,
@@ -100,6 +109,21 @@ class DemoProvider:
         if document_id is None:
             return None
         return f"{self.settings.base_url}/pages/{document_id}"
+
+    def put_asset(self, operation: PutAssetOperation, content: bytes) -> Asset:
+        return Asset(
+            ref=AssetRef(
+                provider=self.settings.provider_name,
+                kind=AssetRefKind.PATH,
+                locator={"path": f"/.assets/{operation.name or 'asset.bin'}"},
+            ),
+            name=operation.name or "asset.bin",
+            media_type=operation.media_type or "application/octet-stream",
+            size_bytes=len(content),
+        )
+
+    def build_asset_reference(self, ref: AssetRef) -> str:
+        return ref.locator["path"]
 
     def apply_changes(self, changeset: ChangeSet) -> ApplyResult:
         results = []

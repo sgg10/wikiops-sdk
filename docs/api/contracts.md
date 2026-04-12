@@ -102,6 +102,8 @@ Expected members:
 - `exists(ref)`
 - `get_document(ref)`
 - `build_link(ref)`
+- `put_asset(operation, content)`
+- `build_asset_reference(ref)`
 - `apply_changes(changeset)`
 
 This is also a structural protocol.
@@ -116,6 +118,7 @@ Methods:
 
 - `has(relative_path)`
 - `read_text(relative_path, encoding="utf-8")`
+- `read_bytes(relative_path)`
 - `list(prefix="")`
 
 This contract is intentionally small because it is meant to expose packaged resources without leaking storage details into plugins.

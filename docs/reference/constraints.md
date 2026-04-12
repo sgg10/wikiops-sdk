@@ -43,13 +43,13 @@ The SDK currently models only:
 - create document
 - update document
 - create child document
+- put asset
 
 It does not model:
 
 - delete operations
 - move or rename operations
 - permission changes
-- attachment uploads
 - batch ref resolution APIs
 
 Hosts and providers should not assume these concepts exist until the SDK models them explicitly.

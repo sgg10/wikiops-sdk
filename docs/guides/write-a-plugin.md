@@ -179,12 +179,26 @@ Typical uses:
 - Markdown templates
 - reusable snippets
 - static fragments
+- binary assets such as images or PDFs
 - prompt files for future automation layers
 
 Example:
 
 ```python
 template = self.resources.read_text("templates/team-overview.md")
+logo_bytes = self.resources.read_bytes("resources/assets/logo.png")
+```
+
+When a plugin wants the host/provider to persist an asset, the recommended pattern is:
+
+1. declare the asset source in plugin config or input
+2. emit a `PutAssetOperation`
+3. reference it from content with `asset://<asset_key>`
+
+Example Markdown:
+
+```md
+![System Diagram](asset://system_diagram)
 ```
 
 ## Emitting Warnings And Notes

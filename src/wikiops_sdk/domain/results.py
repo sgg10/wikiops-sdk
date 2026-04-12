@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
-from wikiops_sdk.domain.models import DocumentRef, DocumentVersion
+from wikiops_sdk.domain.models import AssetRef, DocumentRef, DocumentVersion
 
 
 class OperationStatus(str, Enum):
@@ -24,6 +24,13 @@ class AppliedOperationResult(BaseModel):
     )
     resolved_ref: Optional[DocumentRef] = Field(
         None, description="Reference to the document that was processed."
+    )
+    resolved_asset_ref: Optional[AssetRef] = Field(
+        None, description="Reference to the asset that was processed."
+    )
+    resolved_asset_reference: Optional[str] = Field(
+        None,
+        description="Provider-specific reference string that can be embedded in content.",
     )
     resulting_version: Optional[DocumentVersion] = Field(
         None, description="Version of the document after the operation was applied."

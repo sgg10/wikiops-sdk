@@ -77,6 +77,9 @@ class _DummyResources:
     def read_text(self, relative_path: str, encoding: str = "utf-8") -> str:
         return f"{relative_path}:{encoding}"
 
+    def read_bytes(self, relative_path: str) -> bytes:
+        return relative_path.encode("utf-8")
+
     def list(self, prefix: str = "") -> list[str]:
         return [f"{prefix}file.md"]
 
