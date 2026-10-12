@@ -378,6 +378,10 @@ class ChangeSet(BaseModel):
         default_factory=list,
         description="Optional list of notes related to the changeset.",
     )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Plugin-defined structured planning metadata.",
+    )
 
     def is_empty(self) -> bool:
         """Return ``True`` when no operations were planned in this change set."""

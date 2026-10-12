@@ -170,6 +170,10 @@ Recommended practice:
 - pass normalized dictionaries into the context
 - keep the plugin logic predictable and dictionary-key based inside `plan`
 
+### Structured Planning Metadata
+
+Use `ChangeSet.metadata` for plugin-defined structured planning data that belongs to the plan as a whole. Metadata alone does not make a change set non-empty; `is_empty()` depends only on whether operations were planned.
+
 ## Using Plugin Resources
 
 `PluginResourceProvider` gives the plugin read-only access to files shipped with the plugin package.

@@ -223,6 +223,61 @@ def test_changeset_defaults_and_is_empty() -> None:
     assert changeset.is_empty() is True
 
 
+def test_changeset_metadata_default_is_not_shared() -> None:
+    first = ChangeSet(plugin_id="first")
+    second = ChangeSet(plugin_id="second")
+
+    first.metadata["source"] = "plugin"
+
+    assert second.metadata == {}
+
+
+def test_changeset_metadata_accepts_nested_json_compatible_structures() -> None:
+    metadata = {
+        "source": "template",
+        "options": {"sections": ["overview", "owners"], "published": True},
+        "revision": 3,
+        "confidence": 0.95,
+        "fallback": None,
+    }
+
+    changeset = ChangeSet(plugin_id="demo", metadata=metadata)
+
+    assert changeset.metadata == metadata
+
+
+def test_changeset_metadata_survives_dump_and_validation() -> None:
+    changeset = ChangeSet(
+        plugin_id="demo",
+        metadata={"planner": {"strategy": "incremental", "inputs": [1, 2]}},
+    )
+
+    restored = ChangeSet.model_validate(changeset.model_dump())
+
+    assert restored == changeset
+    assert restored.metadata == changeset.metadata
+
+
+def test_changeset_with_only_metadata_is_empty() -> None:
+    changeset = ChangeSet(plugin_id="demo", metadata={"planning_mode": "preview"})
+
+    assert changeset.is_empty() is True
+
+
+def test_changeset_payload_without_metadata_remains_valid() -> None:
+    changeset = ChangeSet.model_validate({"plugin_id": "legacy-plugin"})
+
+    assert changeset.metadata == {}
+
+
+def test_changeset_metadata_schema_description() -> None:
+    metadata_schema = ChangeSet.model_json_schema()["properties"]["metadata"]
+
+    assert metadata_schema["description"] == (
+        "Plugin-defined structured planning metadata."
+    )
+
+
 def test_changeset_is_not_empty_when_operation_exists() -> None:
     op = CreateDocumentOperation(title="Doc", content="Body")
     changeset = ChangeSet(plugin_id="demo", operations=[op])
