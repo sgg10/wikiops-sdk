@@ -209,6 +209,9 @@ It contains:
 - `operations`
 - `warnings`
 - `notes`
+- plugin-defined structured planning `metadata`
+
+Metadata does not affect emptiness: a `ChangeSet` is empty when it has no operations, even if metadata is present.
 
 ### Why It Matters
 

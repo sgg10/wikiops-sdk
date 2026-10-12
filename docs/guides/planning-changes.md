@@ -83,6 +83,19 @@ changeset = ChangeSet(
 
 `plugin_id` should match the plugin manifest identity so the host can attribute the plan correctly.
 
+## Add Structured Planning Metadata
+
+Plugins can attach structured planning data without adding an operation:
+
+```python
+changeset = ChangeSet(
+    plugin_id="wikiops.handbook",
+    metadata={"template": {"name": "handbook", "revision": 3}},
+)
+```
+
+This metadata is plugin-defined. It does not change `is_empty()` semantics: a change set with metadata but no operations is still empty.
+
 ## Add Planning Messages
 
 Plugins can make their plans more useful by attaching warnings and notes.

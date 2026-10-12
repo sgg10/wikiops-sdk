@@ -1,6 +1,6 @@
 [project]
 name = "wikiops-sdk"
-version = "1.1.0"
+version = "1.2.0"
 description = "Public SDK for WikiOps plugins and integrations. Provides the shared contracts, domain models, compatibility rules, and extension interfaces needed to build providers and documentation plugins."
 authors = [
     {name = "Sebastian Granda Gallego",email = "sgg10.develop@gmail.com"}
